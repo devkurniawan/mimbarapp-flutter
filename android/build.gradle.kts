@@ -5,6 +5,20 @@ allprojects {
     }
 }
 
+// flutter_qiblah uses legacy jcenter() which was removed in Gradle 9+
+subprojects {
+    buildscript {
+        repositories {
+            google()
+            mavenCentral()
+        }
+    }
+    repositories {
+        google()
+        mavenCentral()
+    }
+}
+
 val newBuildDir: Directory =
     rootProject.layout.buildDirectory
         .dir("../../build")

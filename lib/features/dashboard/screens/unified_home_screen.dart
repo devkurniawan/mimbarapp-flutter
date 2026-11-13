@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -19,8 +20,39 @@ import '../../services/screens/halal_food_screen.dart';
 import '../../services/screens/donation_screen.dart';
 import '../../services/screens/ask_screen.dart';
 
-class UnifiedHomeScreen extends StatelessWidget {
+class UnifiedHomeScreen extends StatefulWidget {
   const UnifiedHomeScreen({super.key});
+
+  @override
+  State<UnifiedHomeScreen> createState() => _UnifiedHomeScreenState();
+}
+
+class _UnifiedHomeScreenState extends State<UnifiedHomeScreen> {
+  final ScrollController _scrollController = ScrollController();
+  bool _isScrolledPastHeader = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_onScroll);
+  }
+
+  void _onScroll() {
+    // Header hijau memiliki tinggi sekitar 300-340px
+    final bool pastHeader = _scrollController.hasClients && _scrollController.offset > 180;
+    if (pastHeader != _isScrolledPastHeader) {
+      setState(() {
+        _isScrolledPastHeader = pastHeader;
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _scrollController.removeListener(_onScroll);
+    _scrollController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -28,44 +60,83 @@ class UnifiedHomeScreen extends StatelessWidget {
         ? SampleData.sampleKhutbahs[0]
         : null;
 
+    final isDarkIcons = _isScrolledPastHeader;
+    final topPadding = MediaQuery.of(context).padding.top;
+
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: const SystemUiOverlayStyle(
+      value: SystemUiOverlayStyle(
         statusBarColor: Colors.transparent,
-        statusBarIconBrightness: Brightness.light,
-        statusBarBrightness: Brightness.dark,
+        statusBarIconBrightness: isDarkIcons ? Brightness.dark : Brightness.light,
+        statusBarBrightness: isDarkIcons ? Brightness.light : Brightness.dark,
       ),
       child: Scaffold(
-        backgroundColor: AppColors.backgroundLight,
-        body: SingleChildScrollView(
-          physics: const BouncingScrollPhysics(),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+        backgroundColor: const Color(0xFF003527),
+        body: Container(
+          color: AppColors.backgroundLight,
+          child: Stack(
             children: [
-              // Top Header Section with Green Mosque Motif (scrolls together with content)
-              const _TopHeaderSection(),
-              const SizedBox(height: 18),
+              SingleChildScrollView(
+                controller: _scrollController,
+                physics: const ClampingScrollPhysics(),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Top Header Section with Green Mosque Motif (scrolls together with content)
+                    const _TopHeaderSection(),
+                    const SizedBox(height: 24),
 
-              // Mimbar Assistant Quick Banner
-              _MimbarQuickBanner(featuredKhutbah: featuredKhutbah),
-              const SizedBox(height: 18),
+                    // Mimbar Assistant Quick Banner
+                    _MimbarQuickBanner(featuredKhutbah: featuredKhutbah),
+                    const SizedBox(height: 26),
 
-              // Islamic & Da'wah Services Grid
-              const _ServiceGridSection(),
-              const SizedBox(height: 18),
+                    // Islamic & Da'wah Services Grid
+                    const _ServiceGridSection(),
+                    const SizedBox(height: 26),
 
-              // Featured Khutbah Card
-              if (featuredKhutbah != null) ...[
-                _FeaturedKhutbahSection(khutbah: featuredKhutbah),
-                const SizedBox(height: 18),
-              ],
+                    // Featured Khutbah Card
+                    if (featuredKhutbah != null) ...[
+                      _FeaturedKhutbahSection(khutbah: featuredKhutbah),
+                      const SizedBox(height: 26),
+                    ],
 
-              // Quran Reading Progress
-              const _QuranProgressSection(),
-              const SizedBox(height: 18),
+                    // Quran Reading Progress
+                    const _QuranProgressSection(),
+                    const SizedBox(height: 26),
 
-              // Daily Dawah Section
-              const _DailyDawahSection(),
-              const SizedBox(height: 32),
+                    // Daily Dawah Section
+                    const _DailyDawahSection(),
+                    const SizedBox(height: 36),
+                  ],
+                ),
+              ),
+
+              // Glassmorphic status bar overlay when scrolled
+              Positioned(
+                top: 0,
+                left: 0,
+                right: 0,
+                height: topPadding > 0 ? topPadding : 24,
+                child: AnimatedOpacity(
+                  opacity: _isScrolledPastHeader ? 1.0 : 0.0,
+                  duration: const Duration(milliseconds: 250),
+                  child: ClipRect(
+                    child: BackdropFilter(
+                      filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.75),
+                          border: Border(
+                            bottom: BorderSide(
+                              color: Colors.black.withValues(alpha: 0.05),
+                              width: 0.5,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
             ],
           ),
         ),
@@ -450,14 +521,14 @@ class _ServiceGridSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final services = [
-      {'title': 'Al-Qur\'an', 'icon': LucideIcons.bookOpen, 'color': Colors.blue, 'page': const QuranListScreen()},
-      {'title': 'Arah Kiblat', 'icon': LucideIcons.compass, 'color': Colors.teal, 'page': const QiblatScreen()},
-      {'title': 'Tasbih Digital', 'icon': LucideIcons.circleDot, 'color': Colors.purple, 'page': const TasbihScreen()},
-      {'title': 'Jadwal Mimbar', 'icon': LucideIcons.calendar, 'color': Colors.orange, 'page': const ScheduleScreen()},
-      {'title': 'Kumpulan Hadits', 'icon': LucideIcons.library, 'color': Colors.green, 'page': const HaditsScreen()},
-      {'title': 'Hitung Zakat', 'icon': LucideIcons.calculator, 'color': Colors.indigo, 'page': const ZakatScreen()},
-      {'title': 'Jadwal Puasa', 'icon': LucideIcons.moon, 'color': Colors.amber[800]!, 'page': const FastingScreen()},
-      {'title': 'Masjid Terdekat', 'icon': LucideIcons.mapPin, 'color': Colors.redAccent, 'page': const MosqueScreen()},
+      {'title': 'Al-Qur\'an', 'icon': LucideIcons.bookOpen, 'color': const Color(0xFF0D6E57), 'bg': const Color(0xFFE8F5F1), 'page': const QuranListScreen()},
+      {'title': 'Arah Kiblat', 'icon': LucideIcons.compass, 'color': const Color(0xFF0F766E), 'bg': const Color(0xFFE6F4F2), 'page': const QiblatScreen()},
+      {'title': 'Tasbih Digital', 'icon': LucideIcons.circleDot, 'color': const Color(0xFF1E6F68), 'bg': const Color(0xFFEBF5F4), 'page': const TasbihScreen()},
+      {'title': 'Jadwal Mimbar', 'icon': LucideIcons.calendar, 'color': const Color(0xFFB45309), 'bg': const Color(0xFFFEF3C7), 'page': const ScheduleScreen()},
+      {'title': 'Kumpulan Hadits', 'icon': LucideIcons.library, 'color': const Color(0xFF047857), 'bg': const Color(0xFFECFDF5), 'page': const HaditsScreen()},
+      {'title': 'Hitung Zakat', 'icon': LucideIcons.calculator, 'color': const Color(0xFF0369A1), 'bg': const Color(0xFFE0F2FE), 'page': const ZakatScreen()},
+      {'title': 'Jadwal Puasa', 'icon': LucideIcons.moon, 'color': const Color(0xFFC2410C), 'bg': const Color(0xFFFFEDD5), 'page': const FastingScreen()},
+      {'title': 'Masjid Terdekat', 'icon': LucideIcons.mapPin, 'color': const Color(0xFF991B1B), 'bg': const Color(0xFFFEE2E2), 'page': const MosqueScreen()},
     ];
 
     return Padding(
@@ -518,10 +589,18 @@ class _ServiceGridSection extends StatelessWidget {
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: (item['bg'] as Color?) ?? Colors.white,
                         borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: (item['color'] as Color).withValues(alpha: 0.15),
+                          width: 1,
+                        ),
                         boxShadow: const [
-                          BoxShadow(color: AppColors.cardShadow, blurRadius: 8, offset: Offset(0, 3)),
+                          BoxShadow(
+                            color: Color(0x0A000000),
+                            blurRadius: 10,
+                            offset: Offset(0, 4),
+                          ),
                         ],
                       ),
                       child: Icon(
